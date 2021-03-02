@@ -33,6 +33,8 @@ def welcome():
         f"/api/v1.0/precipitation<br/>"
         f"/api/v1.0/stations<br/>"
         f"/api/v1.0/tobs<br/>"
+        f"/api/v1.0/start/<start><br/>"
+        f"/api/v1.0/start_end/<start>/<end><br/>"
     )
 
 # Precipitation Route
@@ -79,15 +81,23 @@ def start_date_route(start):
     """Fetch the temperature data for the stations start date that matches
        the path variable supplied by the user, or a 404 if not."""
 
-    start_date = dt.datetime.strptime(start, "%Y-%m-%d")
-    summary = session.query(func.min(Measurement.tobs), func.avg(Measurement.tobs), func.max(Measurement.tobs)).\
+    # start_date = dt.datetime.strptime(start, "%Y-%m-%d")
+    summary = session.query(Measurement.station,func.min(Measurement.tobs), func.max(Measurement.tobs), func.avg(Measurement.tobs)).\
     filter(Measurement.date >= start).\
     group_by(Measurement.date).\
     order_by(Measurement.date).all()
     
     session.close()
 
-    return jsonify(summary)
+    start = []
+    for station, min_tob, max_tob, avg_tob in summary:
+        start_dict = {}
+        start_dict['Station'] = station
+        start_dict['Min Temp'] = min_tob
+        start_dict['Max Temp'] = max_tob
+        start_dict['Avg Temp'] = avg_tob
+        start.append(start_dict)
+    return jsonify(start)
 
 
 # Start and End Date Route
@@ -98,7 +108,7 @@ def start_end_route(start, end):
 
     # start_date = dt.datetime.strptime(start, "%Y-%m-%d")
     # end_date = dt.datetime.strptime(end, "%Y-%m-%d")
-    start_end_summary = session.query(func.min(Measurement.tobs), func.avg(Measurement.tobs), func.max(Measurement.tobs)).\
+    start_end_summary = session.query(Measurement.station, func.min(Measurement.tobs), func.max(Measurement.tobs), func.avg(Measurement.tobs)).\
     filter(Measurement.date >= start).\
     filter(Measurement.date<= end).\
     group_by(Measurement.date).\
@@ -106,7 +116,16 @@ def start_end_route(start, end):
     
     session.close()
 
-    return jsonify(start_end_summary)
+    start_end = []
+    for station, min_tob, max_tob, avg_tob in start_end_summary:
+        start_end_dict = {}
+        start_end_dict['Station'] = station
+        start_end_dict['Min Temp'] = min_tob
+        start_end_dict['Max Temp'] = max_tob
+        start_end_dict['Avg Temp'] = avg_tob
+        start_end.append(start_end_dict)
+    
+    return jsonify(start_end)    
 
     return jsonify({"error": f"Date {start} not found."}), 404
 
